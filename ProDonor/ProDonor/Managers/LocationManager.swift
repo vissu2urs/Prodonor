@@ -11,9 +11,9 @@ import UIKit
 import CoreLocation
 
 @objc protocol LocationManagerDelegate {
-    optional func locationManagerDidDenyAuthorization(locationManager: CLLocationManager)
-    optional func locationManager(locationManager: CLLocationManager, didUpdateLocation location: CLLocation)
-    optional func locationmanager(locationManager: CLLocationManager, failedWithError error: NSError)
+     func locationManagerDidDenyAuthorization(locationManager: CLLocationManager)
+     func locationManager(locationManager: CLLocationManager, didUpdateLocation location: CLLocation)
+     func locationmanager(locationManager: CLLocationManager, failedWithError error: NSError)
 }
 
 class LocationManager: NSObject, CLLocationManagerDelegate {
@@ -27,13 +27,15 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
     
     private override init() {
         super.init()
-        self.checkValidityOfAuthorizationStatus(CLLocationManager.authorizationStatus())
+        self.checkValidityOfAuthorizationStatus(status: CLLocationManager.authorizationStatus())
         initiateLocationServices()
     }
     
     func initiateLocationServices() {
         locationInstance = CLLocationManager()
+        locationInstance?.desiredAccuracy = kCLLocationAccuracyBest
         locationInstance?.requestAlwaysAuthorization()
+        //locationInstance?.startUpdatingLocation()
         locationInstance?.delegate = self
     }
     
@@ -51,22 +53,22 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
     
     func checkValidityOfAuthorizationStatus(status: CLAuthorizationStatus) {
         switch (status) {
-        case .AuthorizedAlways:
+        case .authorizedAlways:
             //do nothing
             break
         
-        case .AuthorizedWhenInUse:
+        case .authorizedWhenInUse:
             self.showLocationSettingsAlert(havingTitle: NSLocalizedString("AlertTitle", comment: ""), andMessage: NSLocalizedString("LocationAuthorizationBackgroundAlert", comment: ""))
             break
             
-        case .Denied:
+        case .denied:
             self.showLocationSettingsAlert(havingTitle: NSLocalizedString("AlertTitle", comment: ""), andMessage: NSLocalizedString("LocationAuthorizationDeniedAlert", comment: ""))
             if let delegate = delegate {
-                delegate.locationManagerDidDenyAuthorization?(locationInstance!)
+                delegate.locationManagerDidDenyAuthorization(locationManager: locationInstance!)
             }
             break
             
-        case .Restricted:
+        case .restricted:
             self.showLocationSettingsAlert(havingTitle: NSLocalizedString("AlertTitle", comment: ""), andMessage: NSLocalizedString("LocationAuthorizationRestrictedAlert", comment: ""))
             break
             
@@ -76,49 +78,49 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
     }
     
     func showLocationSettingsAlert(havingTitle title: String, andMessage message: String) {
-        let alertController = UIAlertController(title: title, message: message, preferredStyle: UIAlertControllerStyle.Alert)
-        let settingsAction = UIAlertAction(title: NSLocalizedString("SettingsTitle", comment: ""), style: UIAlertActionStyle.Default) { (action) -> Void in
+        let alertController = UIAlertController(title: title, message: message, preferredStyle: UIAlertControllerStyle.alert)
+        let settingsAction = UIAlertAction(title: NSLocalizedString("SettingsTitle", comment: ""), style: UIAlertActionStyle.default) { (action) -> Void in
             // open settings tab
-            if UIApplication.sharedApplication().canOpenURL(NSURL(string: UIApplicationOpenSettingsURLString)!) {
-                UIApplication.sharedApplication().openURL(NSURL(string: UIApplicationOpenSettingsURLString)!)
+            if UIApplication.shared.canOpenURL(NSURL(string: UIApplicationOpenSettingsURLString)! as URL) {
+                UIApplication.shared.openURL(NSURL(string: UIApplicationOpenSettingsURLString)! as URL)
             }
         }
         alertController.addAction(settingsAction)
-        let cancelAction = UIAlertAction(title: NSLocalizedString("CancelTitle", comment: ""), style: UIAlertActionStyle.Cancel) { (action) -> Void in
+        let cancelAction = UIAlertAction(title: NSLocalizedString("CancelTitle", comment: ""), style: UIAlertActionStyle.cancel) { (action) -> Void in
             // repeat
-            self.checkValidityOfAuthorizationStatus(CLLocationManager.authorizationStatus())
+            self.checkValidityOfAuthorizationStatus(status: CLLocationManager.authorizationStatus())
         }
         alertController.addAction(cancelAction)
         
-        let appDelegate = UIApplication.sharedApplication().delegate as? AppDelegate
+        let appDelegate = UIApplication.shared.delegate as? AppDelegate
         var rootViewController = appDelegate?.window?.rootViewController
         while ((rootViewController?.presentedViewController) != nil) {
             rootViewController = rootViewController?.presentedViewController
         }
-        rootViewController?.presentViewController(alertController, animated: true, completion: { () -> Void in
+        rootViewController?.present(alertController, animated: true, completion: { () -> Void in
             // do nothing
         })
     }
     
     //MARK: CLLocationManagerDelegate
     
-    func locationManager(manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         let currentLocation = locations.last
         // call the delegate
         if let delegate = delegate {
-            delegate.locationManager?(locationInstance!, didUpdateLocation: currentLocation!)
+            delegate.locationManager(locationManager: locationInstance!, didUpdateLocation: currentLocation!)
         }
     }
     
-    func locationManager(manager: CLLocationManager, didFailWithError error: NSError) {
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         // show alert that some error occoured
         if let delegate = delegate {
-            delegate.locationmanager?(locationInstance!, failedWithError: error)
+            delegate.locationmanager(locationManager: locationInstance!, failedWithError: error as NSError)
         }
     }
     
-    func locationManager(manager: CLLocationManager, didChangeAuthorizationStatus status: CLAuthorizationStatus) {
-        self.checkValidityOfAuthorizationStatus(status)
+    private func locationManager(manager: CLLocationManager, didChangeAuthorizationStatus status: CLAuthorizationStatus) {
+        self.checkValidityOfAuthorizationStatus(status: status)
     }
     
 }

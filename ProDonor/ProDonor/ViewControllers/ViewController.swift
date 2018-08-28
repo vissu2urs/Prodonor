@@ -17,7 +17,7 @@ class ViewController: UIViewController, LocationManagerDelegate {
         // Do any additional setup after loading the view, typically from a nib.
     }
     
-    override func viewWillAppear(animated: Bool) {
+    override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         LocationManager.sharedInstance.delegate = self
         LocationManager.sharedInstance.startUpdatingLocation()
